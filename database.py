@@ -3,7 +3,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from fastapi import Depends
 
-DATABASE_URL = "postgresql://pdfuser:pdfpass123@localhost:5432/pdfdb"
+DATABASE_URL = "postgresql://pdfdb_x4xc_user:ecJPPDfIe6H9r3aToayzr1WuzC0CqJIf@dpg-d26460u3jp1c73cgkeo0-a.oregon-postgres.render.com/pdfdb_x4xc"
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

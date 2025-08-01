@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+python-dotenv
+sqlalchemy
+psycopg2-binary
+google-generativeai
+pinecone
+pdfplumber
+requests
+numpy
