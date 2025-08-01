@@ -137,7 +137,7 @@ def run_query(payload: QueryRequest):
 
 import concurrent.futures
 
-@app.post("/hackrx/run", dependencies=[Depends(verify_token)])
+@app.post("/api/v1/hackrx/run", dependencies=[Depends(verify_token)])
 def run_query(payload: QueryRequest):
     blob_url = payload.documents
     questions = payload.questions
