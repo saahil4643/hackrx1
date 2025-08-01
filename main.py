@@ -216,9 +216,16 @@ Answer:"""
         with concurrent.futures.ThreadPoolExecutor() as executor:
             results = list(executor.map(answer_question, questions))
 
-        return {
-            "answers": results
-        }
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+    results = list(executor.map(answer_question, questions))
+
+# Only return the answers
+only_answers = [result["answer"] for result in results]
+
+return {
+    "answers": only_answers
+}
+
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
