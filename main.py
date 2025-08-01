@@ -199,16 +199,17 @@ def run_query(payload: QueryRequest):
             )[:3]
 
             context = "\n\n".join(c["chunk"] for c in top_chunks)
-            prompt = f"""You are a customer-facing insurance assistant. Based on the context below, give a **direct, specific answer** to the question.
+            prompt = f"""You are a customer-facing insurance assistant. Use the context below as your primary source to answer the question. If the answer is not directly available in the context, use your general insurance knowledge to provide a helpful and accurate answer.
 
-Only return the answer. If the answer is not found in the context, say exactly: "Not mentioned in the context."
+            Only return the answer. Say exactly "Not mentioned in the context." only if there is truly no relevant information available from the context or your knowledge.
 
-Question: {question}
+            Question: {question}
 
-Context:
-{context}
+            Context:
+            {context}
 
-Answer:"""
+            Answer:"""
+
 
             reply = chat.send_message(prompt)   
             return {"question": question, "answer": reply.text.strip()}
