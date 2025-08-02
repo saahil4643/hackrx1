@@ -230,4 +230,17 @@ Answer:"""
             reply = chat.send_message(prompt)
             return {"question": question, "answer": reply.text.strip()}
 
-        with concurrent.futures.ThreadPo
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            results = list(executor.map(answer_question, questions))
+
+        only_answers = [result["answer"] for result in results]
+
+        logging.info(f"[DEBUG] Number of answers generated: {len(only_answers)}")
+
+        return {
+            "answers": only_answers
+        }
+
+    except Exception as e:
+        logging.exception("[ERROR] Exception occurred while processing request.")
+        raise HTTPException(status_code=500, detail=str(e))
