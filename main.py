@@ -136,20 +136,31 @@ def run_query(payload: QueryRequest):
 
 
 import concurrent.futures
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 
 @app.post("/api/v1/hackrx/run", dependencies=[Depends(verify_token)])
 def run_query(payload: QueryRequest):
     blob_url = payload.documents
     questions = payload.questions
 
+    logging.info(f"[DEBUG] PDF URL received: {blob_url}")
+    logging.info(f"[DEBUG] Number of questions received: {len(questions)}")
+
     try:
         # Step 1: Download PDF
         response = requests.get(blob_url, timeout=10)
         if response.status_code != 200:
+            logging.error("[ERROR] Failed to download PDF.")
             raise HTTPException(status_code=400, detail="Failed to download PDF.")
+        
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
             tmp_file.write(response.content)
             file_path = tmp_file.name
+
+        logging.info(f"[DEBUG] PDF downloaded and saved to: {file_path}")
 
         # Step 2: Extract text
         with pdfplumber.open(file_path) as pdf:
@@ -157,7 +168,10 @@ def run_query(payload: QueryRequest):
         os.remove(file_path)
 
         if not extracted_text.strip():
+            logging.warning("[WARNING] No text could be extracted from the PDF.")
             raise HTTPException(status_code=HTTP_204_NO_CONTENT, detail="No text could be extracted.")
+        
+        logging.info(f"[DEBUG] Extracted text length: {len(extracted_text)} characters")
 
         # Step 3: Chunk (reduced to 10 chunks)
         chunk_size, overlap = 1000, 200
@@ -167,6 +181,8 @@ def run_query(payload: QueryRequest):
             chunks.append(extracted_text[start:end])
             start += chunk_size - overlap
         chunks = chunks[:10]
+
+        logging.info(f"[DEBUG] Number of chunks created: {len(chunks)}")
 
         # Step 4: Parallel Embedding of chunks
         def embed_chunk(chunk):
@@ -180,10 +196,11 @@ def run_query(payload: QueryRequest):
         with concurrent.futures.ThreadPoolExecutor() as executor:
             chunk_embeddings = list(executor.map(embed_chunk, chunks))
 
+        logging.info("[DEBUG] All chunks embedded successfully.")
+
         # Step 5: Parallel Question Answering
         model = genai.GenerativeModel("models/gemini-1.5-flash-latest")
         chat = model.start_chat()
-        results = []
 
         def answer_question(question):
             query_embedding = genai.embed_content(
@@ -201,26 +218,16 @@ def run_query(payload: QueryRequest):
             context = "\n\n".join(c["chunk"] for c in top_chunks)
             prompt = f"""You are a customer-facing insurance assistant. Use the context below as your primary source to answer the question. If the answer is not directly available in the context, use your general insurance knowledge to provide a helpful and accurate answer.
 
-            Only return the answer. Say exactly "Not mentioned in the context." only if there is truly no relevant information available from the context or your knowledge.
+Only return the answer. Say exactly "Not mentioned in the context." only if there is truly no relevant information available from the context or your knowledge.
 
-            Question: {question}
+Question: {question}
 
-            Context:
-            {context}
+Context:
+{context}
 
-            Answer:"""
+Answer:"""
 
-
-            reply = chat.send_message(prompt)   
+            reply = chat.send_message(prompt)
             return {"question": question, "answer": reply.text.strip()}
 
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            results = list(executor.map(answer_question, questions))
-
-        only_answers = [result["answer"] for result in results]
-        return {
-            "answers": only_answers
-        }
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        with concurrent.futures.ThreadPo
