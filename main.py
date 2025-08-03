@@ -228,7 +228,13 @@ Context:
 Answer:"""
 
             reply = chat.send_message(prompt)
-            return {"question": question, "answer": reply.text.strip()}
+            answer_text = reply.text.strip()
+
+            # NEW LOGGING: Show question and answer
+            logging.info(f"[Q&A] Question: {question}")
+            logging.info(f"[Q&A] Answer: {answer_text}")
+
+            return {"question": question, "answer": answer_text}
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
             results = list(executor.map(answer_question, questions))
@@ -244,3 +250,4 @@ Answer:"""
     except Exception as e:
         logging.exception("[ERROR] Exception occurred while processing request.")
         raise HTTPException(status_code=500, detail=str(e))
+
